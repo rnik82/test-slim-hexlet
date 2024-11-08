@@ -1,17 +1,17 @@
 <?php
-$name = 'Lessons';
-?>
 
-<div>
-  <a href="/lessons/<?= 23 ?>"><?= $name ?></a>
-</div>
+// Подключение автозагрузки через composer
+require __DIR__ . '/../vendor/autoload.php';
 
-// Печатает год в STDOUT
-// header('Cache-control: private, max-age=0');
-// echo date('Y');
-// echo "<br>";
-// var_dump($_POST);
-// echo "<br>";
-// echo 'Hello, world!____';
+use Slim\Factory\AppFactory;
 
-//header('Location: http://www.example.com/');
+$app = AppFactory::create();
+$app->addErrorMiddleware(true, true, true);
+
+$app->get('/', function ($request, $response) {
+    $response->getBody()->write('Welcome to Slim!');
+    return $response;
+    // Благодаря пакету slim/http этот же код можно записать короче
+    // return $response->write('Welcome to Slim!');
+});
+$app->run();
