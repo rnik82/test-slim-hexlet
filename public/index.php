@@ -22,6 +22,15 @@ $app->addErrorMiddleware(true, true, true);
 
 // $app = AppFactory::create();
 
+$users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
+
+$app->get('/users', function ($request, $response) use ($users) {
+  $name = $request->getQueryParam('name');
+  $filteredNames = array_filter($users, fn($user) => str_contains($user, $name));
+  $params = ['users' => $filteredNames, 'name' => $name];
+  return $this->get('renderer')->render($response, 'users/index.phtml', $params);
+});
+
 $app->get('/users/{id}', function ($request, $response, $args) {
   $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
   // Указанный путь считается относительно базовой директории для шаблонов, заданной на этапе конфигурации
@@ -37,10 +46,6 @@ $app->get('/courses/{id}', function ($request, $response, array $args) {
 
 $app->get('/', function ($request, $response) {
     return $response->write('GET /');
-});
-
-$app->get('/users', function ($request, $response) {
-  return $response->write('GET /users');
 });
 
 $app->get('/companies', function ($request, $response) {
