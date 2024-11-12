@@ -1,5 +1,5 @@
 <form action="/users" method="get">
-  <input type="search" name="name" value="<?= $name ?>" />
+  <input type="search" name="name" value="<?= htmlspecialchars($name) ?>" />
   <input type="submit" value="Search" />
 </form>
 
