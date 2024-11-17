@@ -16,31 +16,106 @@ $container->set('renderer', function () {
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
+
+
 // return $response->getBody()->write('Welcome to Slim!');
 // Благодаря пакету slim/http этот же код можно записать короче
 // return $response->write('Welcome to Slim!');
 
 // $app = AppFactory::create();
 
-$users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
+// Обработчик для страницы с формой, которую заполняет пользователь.
+// Эта форма отправляет POST-запрос на адрес /users, указанный в атрибуте action
+$app->get('/users/new', function ($request, $response) {
+  $params = [
+      'user' => ['nickname' => '', 'email' => ''],
+      'errors' => []
+  ];
+  return $this->get('renderer')->render($response, "users/new.phtml", $params);
+});
+
+// $repo = new App\UserRepository(); - используем файл
+
+// Обработка данных формы post
+$app->post('/users', function ($request, $response) {
+
+    // $validator = new Validator();
+
+    $user = $request->getParsedBodyParam('user'); // асс массив, типа ["nickname" => "Igor","email" => "Igor@mail.ru"]
+    // Получаем JSON-представление данных (user) в виде строки
+    //$userJson = json_encode($user); // {"nickname":"Igor","email":"igor@mail.ru"}
+    // Читаем данные из файла data.txt в корне проекта
+    $data = file_get_contents('data.txt'); // просто строка
+    //print_r($data);
+    // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
+    $users = json_decode($data, true); // асс массив
+    //print_r($users);
+    $id = count($users) + 1;
+    $users[$id] = $user;
+    // Получаем JSON-представление данных (users) в виде строки
+    $usersJson = json_encode($users);
+    // Записываем данные о user в файл (JSON-представление)
+    file_put_contents('data.txt', $usersJson . "\n"); //  . "\n", FILE_APPEND
+    // После добавления данных в файл происходит редирект на адрес /users
+    return $response->withRedirect('/users', 302);
+
+    // $errors = $validator->validate($user);
+    // if (count($errors) === 0) {
+        // Если ошибок нет, то данные формы сохраняются, например, в базу данных
+        // $repo->save($user);
+        // После добавления данных в файл происходит редирект на адрес /users
+    //     return $response->withRedirect('/users', 302);
+    // }
+    // $params = [
+    //     'user' => $user,
+    //     'errors' => $errors
+    // ];
+    // return $this->get('renderer')->render($response, "users/new.phtml", $params);
+});
 
 // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
-$app->get('/users', function ($request, $response) use ($users) {
+$app->get('/users', function ($request, $response) {
 
   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
-  $name = $request->getQueryParam('name');
+  $nickname = $request->getQueryParam('nickname');
 
+  // Читаем данные из файла data.txt в корне проекта
+  $data = file_get_contents('data.txt');
+  
+  // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоциативный массив (так как true)
+  $usersAssArr = json_decode($data, true, 3);
+  // получаем массив значений (каждое значение примерно таеон ["nickname" => "Igor","email" => "Igor@mail.ru"])
+  $users = array_values($usersAssArr);
   // фильтруем наш массив для вывода результатов поиска
-  $filteredNames = array_filter($users, fn($user) => str_contains($user, $name));
+  $filteredUsers = array_filter($users, fn($user) => str_contains($user['nickname'], $nickname));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
-  $params = ['users' => $filteredNames, 'name' => $name];
+  $params = ['users' => $filteredUsers, 'nickname' => $nickname];
 
   // $this в Slim это контейнер зависимостей.
   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
   return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 });
+
+// $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
+// // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
+// $app->get('/users', function ($request, $response) use ($users) {
+
+//   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
+//   $name = $request->getQueryParam('name');
+
+//   // фильтруем наш массив для вывода результатов поиска
+//   $filteredNames = array_filter($users, fn($user) => str_contains($user, $name));
+
+//   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
+//   // ассоциативного массива. Передается третьим параметром в метод render
+//   $params = ['users' => $filteredNames, 'name' => $name];
+
+//   // $this в Slim это контейнер зависимостей.
+//   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
+//   return $this->get('renderer')->render($response, 'users/index.phtml', $params);
+// });
 
 
 // Обработчик с шаблонизатором (see template in templates/users/show.phtml)
@@ -85,9 +160,9 @@ $app->post('/companies', function ($request, $response) {
     return $response->write('POST /companies');
 });
 
-$app->post('/users', function ($request, $response) {
+//$app->post('/users', function ($request, $response) {
   // Устанавливаем статус ответа (запрашиваемый ресурс был временно перемещён в новое местоположение)
-  return $response->withStatus(302);
-});
+//  return $response->withStatus(302);
+//});
 
 $app->run();
