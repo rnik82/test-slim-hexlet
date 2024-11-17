@@ -8,11 +8,20 @@ require __DIR__ . '/../vendor/autoload.php';
 use Slim\Factory\AppFactory;
 use DI\Container;
 
+// Старт PHP сессии для пакета slim/flash
+session_start();
+
 $container = new Container();
 $container->set('renderer', function () {
     // Параметром передается базовая директория, в которой будут храниться шаблоны
     return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
 });
+
+// Подключение к проекту пакет slim/flash
+$container->set('flash', function () {
+  return new \Slim\Flash\Messages();
+});
+
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
@@ -39,8 +48,12 @@ $app->get('/users/new', function ($request, $response) {
 
 // Обработка данных формы post
 $app->post('/users', function ($request, $response) use ($router) {
-
     // $validator = new Validator();
+
+    // Добавление флеш-сообщения. Оно станет доступным на следующий HTTP-запрос.
+    // 'success' — тип флеш-сообщения. Используется при выводе для форматирования.
+    // Например, можно ввести тип success и отражать его зеленым цветом
+    $this->get('flash')->addMessage('success', 'User was added successfully');
 
     $user = $request->getParsedBodyParam('user'); // асс массив, типа ["nickname" => "Igor","email" => "Igor@mail.ru"]
     // Получаем JSON-представление данных (user) в виде строки
@@ -78,6 +91,9 @@ $app->post('/users', function ($request, $response) use ($router) {
 // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
 $app->get('/users', function ($request, $response) {
 
+  // Извлечение flash-сообщений, установленных на предыдущем запросе
+  $messages = $this->get('flash')->getMessages();
+  //print_r($messages);
   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
   $nickname = $request->getQueryParam('nickname');
 
@@ -93,7 +109,7 @@ $app->get('/users', function ($request, $response) {
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
-  $params = ['users' => $filteredUsers, 'nickname' => $nickname];
+  $params = ['users' => $filteredUsers, 'nickname' => $nickname, 'flash' => $messages];
 
   // $this в Slim это контейнер зависимостей.
   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
@@ -122,9 +138,21 @@ $app->get('/users', function ($request, $response) {
 
 // Обработчик с шаблонизатором (see template in templates/users/show.phtml)
 $app->get('/users/{id}', function ($request, $response, $args) {
+  // Получаем искомый id
+  $id = $args['id'];
+  // Читаем данные из файла data.txt
+  $data = file_get_contents('data.txt'); // просто JSON в виде строки
+  // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
+  $users = json_decode($data, true); // асс массив всех users
+  // Находим нужного user по id
+  $user = $users[$id] ?? null;
+  // Если не нашелся, то реализуем код ошибки 404
+  if (!$user) {
+    return $response->withStatus(404)->write("There is no user with id = {$id}");
+  }
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
-  $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
+  $params = ['id' => $id, 'nickname' => $user['nickname'], 'email' => $user['email']];
   // Указанный путь ('/users/{id}') считается относительно базовой директории для шаблонов, заданной на этапе конфигурации
   // $this доступен внутри анонимной функции благодаря https://php.net/manual/ru/closure.bindto.php
   // $this в Slim это контейнер зависимостей

@@ -4,6 +4,16 @@
   <input type="submit" value="Search" />
 </form>
 
+<?php if (count($flash) > 0) : ?>
+    <ul>
+    <?php foreach ($flash as $messages) : ?>
+        <?php foreach ($messages as $message) : ?>
+            <li><?= $message ?></li>
+        <?php endforeach ?>
+    <?php endforeach ?>
+    </ul>
+<?php endif ?>
+
 <table>
     <?php foreach ($users as $user) : ?>
         <tr>
