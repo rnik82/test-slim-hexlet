@@ -1,1 +1,1 @@
-{"1":{"nickname":"Roman","email":"rnik82@mail.ru"},"2":{"nickname":"Igor","email":"igor@mail.ru"},"3":{"nickname":"Vasia","email":"vasia@mail.ru"},"4":{"nickname":"Vasia","email":"vasia@mail.ru"},"5":{"nickname":"Petia","email":"petia@mail.ru"}}
+{"1":{"nickname":"Roman","email":"rnik82@mail.ru","id":1},"2":{"nickname":"Igor","email":"igor@mail.ru","id":2},"3":{"nickname":"Vasia","email":"vasia@mail.ru","id":3},"4":{"nickname":"Ivan","email":"ivan@mail.ru","id":4}}

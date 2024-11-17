@@ -16,7 +16,8 @@ $container->set('renderer', function () {
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
 
-
+// Получаем роутер — объект, отвечающий за хранение и обработку маршрутов
+$router = $app->getRouteCollector()->getRouteParser();
 
 // return $response->getBody()->write('Welcome to Slim!');
 // Благодаря пакету slim/http этот же код можно записать короче
@@ -32,12 +33,12 @@ $app->get('/users/new', function ($request, $response) {
       'errors' => []
   ];
   return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
+})->setName('users.create');
 
 // $repo = new App\UserRepository(); - используем файл
 
 // Обработка данных формы post
-$app->post('/users', function ($request, $response) {
+$app->post('/users', function ($request, $response) use ($router) {
 
     // $validator = new Validator();
 
@@ -48,16 +49,17 @@ $app->post('/users', function ($request, $response) {
     $data = file_get_contents('data.txt'); // просто строка
     //print_r($data);
     // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
-    $users = json_decode($data, true); // асс массив
+    $users = json_decode($data, true) ?? []; // асс массив
     //print_r($users);
     $id = count($users) + 1;
+    $user['id'] = $id;
     $users[$id] = $user;
     // Получаем JSON-представление данных (users) в виде строки
     $usersJson = json_encode($users);
     // Записываем данные о user в файл (JSON-представление)
     file_put_contents('data.txt', $usersJson . "\n"); //  . "\n", FILE_APPEND
     // После добавления данных в файл происходит редирект на адрес /users
-    return $response->withRedirect('/users', 302);
+    return $response->withRedirect($router->urlFor('users.index'), 302);
 
     // $errors = $validator->validate($user);
     // if (count($errors) === 0) {
@@ -71,7 +73,7 @@ $app->post('/users', function ($request, $response) {
     //     'errors' => $errors
     // ];
     // return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
+})->setName('users.store');
 
 // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
 $app->get('/users', function ($request, $response) {
@@ -96,7 +98,7 @@ $app->get('/users', function ($request, $response) {
   // $this в Slim это контейнер зависимостей.
   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
   return $this->get('renderer')->render($response, 'users/index.phtml', $params);
-});
+})->setName('users.index');
 
 // $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
 // // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
@@ -127,7 +129,7 @@ $app->get('/users/{id}', function ($request, $response, $args) {
   // $this доступен внутри анонимной функции благодаря https://php.net/manual/ru/closure.bindto.php
   // $this в Slim это контейнер зависимостей
   return $this->get('renderer')->render($response, 'users/show.phtml', $params);
-});
+})->setName('users.show');
 
 $app->get('/courses/{id}', function ($request, $response, array $args) {
   // Любая изменяемая часть маршрута, то что внутри {}, называется плейсхолдером — заполнителем
