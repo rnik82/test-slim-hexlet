@@ -1,10 +1,11 @@
-<!-- Шаблон для обработчика get /users, который отображает пользователей и почту -->
-<form action="/users" method="get">
-  <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?>" />
-  <input type="submit" value="Search" />
-</form>
-
+<a href="/users/new">Добавить нового</a>
+<!-- Выводим flash сообщения при удачном добавлении нового пользователя -->
 <?php if (count($flash) > 0) : ?>
+    <style>
+        li {
+            color: green; /* задаем цыет flash сообщения */
+        }
+    </style>
     <ul>
     <?php foreach ($flash as $messages) : ?>
         <?php foreach ($messages as $message) : ?>
@@ -14,17 +15,23 @@
     </ul>
 <?php endif ?>
 
+<!-- Шаблон для обработчика get /users, который отображает пользователей и почту -->
+<form action="/users" method="get">
+  <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?>" />
+  <input type="submit" value="Search" />
+</form>
+
 <table>
     <?php foreach ($users as $user) : ?>
         <tr>
             <td>
-                <?= $user['id'] ?>
+                <?= htmlspecialchars($user['id']) ?>
             </td>
             <td>
-                <?= $user['nickname'] ?>
+                <?= htmlspecialchars($user['nickname']) ?>
             </td>
             <td>
-                <?= $user['email'] ?>
+                <?= htmlspecialchars($user['email']) ?>
             </td>
         </tr>
     <?php endforeach ?>

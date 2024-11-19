@@ -1,11 +1,12 @@
 <!-- templates/users/new.phtml -->
+<a href="/users">Список пользователей</a>
 <!-- страница с формой, которую заполняет пользователь (шаблон для get /users/new) -->
 <!-- затем отправится POST-запрос на адрес /users, указанный в атрибуте action (post /users) -->
 <form action="/users" method="post">
   <div>
     <label>
-        Имя
-      <input type="text" name="user[nickname]" value="<?= htmlspecialchars($user['nickname']) ?>">
+        Имя *
+      <input type="text" name="user[nickname]" value="<?= htmlspecialchars($user['nickname'] ?? '') ?>">
     </label>
     <!-- Чтобы в форму подставлялись возникающие ошибки и значения полей, 
     введенные пользователем, добавляем следующее -->
@@ -15,8 +16,8 @@
   </div>
   <div>
     <label>
-        Email
-      <input type="email" required name="user[email]" value="<?= htmlspecialchars($user['email']) ?>">
+        Email *
+      <input type="email" name="user[email]" value="<?= htmlspecialchars($user['email'] ?? '') ?>">
     </label>
     <!-- Чтобы в форму подставлялись возникающие ошибки и значения полей, 
     введенные пользователем, добавляем следующее -->
@@ -24,5 +25,5 @@
       <div><?= $errors['email'] ?></div>
     <?php endif ?>
   </div>
-  <input type="submit" value="Submit">
+  <input type="submit" value="Create">
 </form>

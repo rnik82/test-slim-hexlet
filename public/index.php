@@ -38,7 +38,7 @@ $router = $app->getRouteCollector()->getRouteParser();
 // Эта форма отправляет POST-запрос на адрес /users, указанный в атрибуте action
 $app->get('/users/new', function ($request, $response) {
   $params = [
-      'user' => ['nickname' => '', 'email' => ''],
+      'user' => [],
       'errors' => []
   ];
   return $this->get('renderer')->render($response, "users/new.phtml", $params);
@@ -48,44 +48,47 @@ $app->get('/users/new', function ($request, $response) {
 
 // Обработка данных формы post
 $app->post('/users', function ($request, $response) use ($router) {
-    // $validator = new Validator();
-
-    // Добавление флеш-сообщения. Оно станет доступным на следующий HTTP-запрос.
-    // 'success' — тип флеш-сообщения. Используется при выводе для форматирования.
-    // Например, можно ввести тип success и отражать его зеленым цветом
-    $this->get('flash')->addMessage('success', 'User was added successfully');
 
     $user = $request->getParsedBodyParam('user'); // асс массив, типа ["nickname" => "Igor","email" => "Igor@mail.ru"]
-    // Получаем JSON-представление данных (user) в виде строки
-    //$userJson = json_encode($user); // {"nickname":"Igor","email":"igor@mail.ru"}
-    // Читаем данные из файла data.txt в корне проекта
-    $data = file_get_contents('data.txt'); // просто строка
-    //print_r($data);
-    // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
-    $users = json_decode($data, true) ?? []; // асс массив
-    //print_r($users);
-    $id = count($users) + 1;
-    $user['id'] = $id;
-    $users[$id] = $user;
-    // Получаем JSON-представление данных (users) в виде строки
-    $usersJson = json_encode($users);
-    // Записываем данные о user в файл (JSON-представление)
-    file_put_contents('data.txt', $usersJson . "\n"); //  . "\n", FILE_APPEND
-    // После добавления данных в файл происходит редирект на адрес /users
-    return $response->withRedirect($router->urlFor('users.index'), 302);
+    
+    $validator = new App\Validator();
+    // Проверяем корректность данных
+    $errors = $validator->validate($user);
+    if (count($errors) === 0) {
+      // Если данные корректны, то сохраняем, добавляем флеш и выполняем редирект
 
-    // $errors = $validator->validate($user);
-    // if (count($errors) === 0) {
-        // Если ошибок нет, то данные формы сохраняются, например, в базу данных
-        // $repo->save($user);
-        // После добавления данных в файл происходит редирект на адрес /users
-    //     return $response->withRedirect('/users', 302);
-    // }
-    // $params = [
-    //     'user' => $user,
-    //     'errors' => $errors
-    // ];
-    // return $this->get('renderer')->render($response, "users/new.phtml", $params);
+      // Получаем JSON-представление данных (user) в виде строки
+      //$userJson = json_encode($user); // {"nickname":"Igor","email":"igor@mail.ru"}
+      // Читаем данные из файла data.txt в корне проекта
+      $data = file_get_contents('data.txt'); // просто строка
+      //print_r($data);
+      // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
+      $users = json_decode($data, true) ?? []; // асс массив
+      //print_r($users);
+      $id = count($users) + 1;
+      $user['id'] = $id;
+      $users[$id] = $user;
+      // Получаем JSON-представление данных (users) в виде строки
+      $usersJson = json_encode($users);
+      // Записываем данные о user в файл (JSON-представление)
+      file_put_contents('data.txt', $usersJson . "\n"); //  . "\n", FILE_APPEND
+
+      // Добавление флеш-сообщения. Оно станет доступным на следующий HTTP-запрос.
+      // 'success' — тип флеш-сообщения. Используется при выводе для форматирования.
+      // Например, можно ввести тип success и отражать его зеленым цветом
+      $this->get('flash')->addMessage('success', 'User was added successfully');
+
+      // После добавления данных в файл происходит редирект на адрес /users
+      return $response->withRedirect($router->urlFor('users.index'), 302);
+    }
+    $params = [
+          'user' => $user,
+          'errors' => $errors
+    ];
+    // Если возникли ошибки, то устанавливаем код ответа в 422 и рендерим форму с указанием ошибок
+    $response = $response->withStatus(422);
+    return $this->get('renderer')->render($response, "users/new.phtml", $params);
+
 })->setName('users.store');
 
 // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
@@ -93,7 +96,6 @@ $app->get('/users', function ($request, $response) {
 
   // Извлечение flash-сообщений, установленных на предыдущем запросе
   $messages = $this->get('flash')->getMessages();
-  //print_r($messages);
   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
   $nickname = $request->getQueryParam('nickname');
 
@@ -148,7 +150,8 @@ $app->get('/users/{id}', function ($request, $response, $args) {
   $user = $users[$id] ?? null;
   // Если не нашелся, то реализуем код ошибки 404
   if (!$user) {
-    return $response->withStatus(404)->write("There is no user with id = {$id}");
+    return $response->write("There is no user with id = {$id}")
+              ->withStatus(404);
   }
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
