@@ -1,4 +1,5 @@
-<a href="/users/new">Добавить нового</a>
+<a href="/users/new">Добавить нового пользователя</a>
+
 <!-- Выводим flash сообщения при удачном добавлении нового пользователя -->
 <?php if (count($flash) > 0) : ?>
     <style>
@@ -20,7 +21,7 @@
   <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?>" />
   <input type="submit" value="Search" />
 </form>
-
+<?= htmlspecialchars($post['name']) ?>
 <table>
     <?php foreach ($users as $user) : ?>
         <tr>
@@ -28,10 +29,10 @@
                 <?= htmlspecialchars($user['id']) ?>
             </td>
             <td>
-                <?= htmlspecialchars($user['nickname']) ?>
+                <a href="/users/<?= $user['id'] ?>/edit"><?= htmlspecialchars($user['nickname']) ?></a>
             </td>
             <td>
-                <?= htmlspecialchars($user['email']) ?>
+                <?= htmlspecialchars($user['email']) ?></a>
             </td>
         </tr>
     <?php endforeach ?>

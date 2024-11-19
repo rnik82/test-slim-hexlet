@@ -7,6 +7,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use DI\Container;
+// Включаем поддержку переопределения метода в Slim
+use Slim\Middleware\MethodOverrideMiddleware;
 
 // Старт PHP сессии для пакета slim/flash
 session_start();
@@ -24,6 +26,8 @@ $container->set('flash', function () {
 
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
+// Включаем поддержку переопределения метода в Slim
+$app->add(MethodOverrideMiddleware::class);
 
 // Получаем роутер — объект, отвечающий за хранение и обработку маршрутов
 $router = $app->getRouteCollector()->getRouteParser();
@@ -32,25 +36,25 @@ $router = $app->getRouteCollector()->getRouteParser();
 // Благодаря пакету slim/http этот же код можно записать короче
 // return $response->write('Welcome to Slim!');
 
-// $app = AppFactory::create();
 
 // Обработчик для страницы с формой, которую заполняет пользователь.
 // Эта форма отправляет POST-запрос на адрес /users, указанный в атрибуте action
 $app->get('/users/new', function ($request, $response) {
-  $params = [
-      'user' => [],
-      'errors' => []
-  ];
-  return $this->get('renderer')->render($response, "users/new.phtml", $params);
+    $params = [
+        'user' => [],
+        'errors' => []
+    ];
+    return $this->get('renderer')->render($response, "users/new.phtml", $params);
 })->setName('users.create');
 
-// $repo = new App\UserRepository(); - используем файл
+// $repo = new App\UserRepository(); это не нужно, так как используем файл
 
 // Обработка данных формы post
 $app->post('/users', function ($request, $response) use ($router) {
 
+    // С помощью $request->getParsedBodyParam мы получаем данные из формы (то что вводит пользователь, шаблон new.phtml)
     $user = $request->getParsedBodyParam('user'); // асс массив, типа ["nickname" => "Igor","email" => "Igor@mail.ru"]
-    
+    //dd($user);
     $validator = new App\Validator();
     // Проверяем корректность данных
     $errors = $validator->validate($user);
@@ -82,8 +86,8 @@ $app->post('/users', function ($request, $response) use ($router) {
       return $response->withRedirect($router->urlFor('users.index'), 302);
     }
     $params = [
-          'user' => $user,
-          'errors' => $errors
+        'user' => $user,
+        'errors' => $errors
     ];
     // Если возникли ошибки, то устанавливаем код ответа в 422 и рендерим форму с указанием ошибок
     $response = $response->withStatus(422);
@@ -162,40 +166,63 @@ $app->get('/users/{id}', function ($request, $response, $args) {
   return $this->get('renderer')->render($response, 'users/show.phtml', $params);
 })->setName('users.show');
 
-$app->get('/courses/{id}', function ($request, $response, array $args) {
-  // Любая изменяемая часть маршрута, то что внутри {}, называется плейсхолдером — заполнителем
-  // Доступ к значению конкретного плейсхолдера осуществляется по имени через массив $args,
-  // который передается третьим параметром в функцию-обработчик
-  $id = $args['id'];
-  return $response->write("Course id: {$id}");
+// Редактирование юзера
+$app->get('/users/{id}/edit', function ($request, $response, array $args) {
+    //$post = $repo->find($args['id']); // не используем репозиторий (БД), вместо этого используем файл
+    $id = $args['id'];
+    //dd($id);
+    $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+    //dd($data);
+    $users = json_decode($data, true); // преобразуем в асс массив
+    //dd(gettype($users));
+    $user = $users[$id];
+    //dd($user);
+
+    $params = [
+        'user' => $user,
+        'errors' => [],
+        'userData' => $user
+    ];
+  return $this->get('renderer')->render($response, 'users/edit.phtml', $params);
 });
 
-$app->get('/', function ($request, $response) {
-    return $response->write('GET /');
+$app->patch('/users/{id}', function ($request, $response, array $args) use ($router) {
+    $id = $args['id'];
+    $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+    $users = json_decode($data, true); // преобразуем в асс массив
+    $user = $users[$id];
+    // С помощью $request->getParsedBodyParam мы получаем данные из формы,
+    // то что вводит пользователь (шаблон new.phtml)
+    $userData = $request->getParsedBodyParam('user');
+
+    $validator = new App\Validator();
+    $errors = $validator->validate($userData);
+
+    if (count($errors) === 0) {
+        $user['nickname'] = $userData['nickname'];
+        $user['email'] = $userData['email'];
+        //dd($userData['name']);
+        //$repo->save($post); // не используем репозиторий (БД), вместо этого используем файл
+
+        // Обновляем юзера в списке
+        $users[$id] = $user;
+        // Получаем JSON-представление данных (users) в виде строки
+        $usersJson = json_encode($users);
+        // Записываем данные о user в файл (JSON-представление)
+        file_put_contents('data.txt', $usersJson . "\n");
+        $this->get('flash')->addMessage('success', 'User has been updated');
+        return $response->withRedirect($router->urlFor('users.index'));
+    }
+
+    $params = [
+        'user' => $user,
+        'userData' => $postData,
+        'errors' => $errors
+    ];
+
+    return $this->get('renderer')
+              ->render($response->withStatus(422), 'users/edit.phtml', $params);
 });
 
-$app->get('/companies', function ($request, $response) {
-    return $response->write('GET /companies');
-});
-
-// $app->post('/users', function ($request, $response) {
-  // Так параметры извлекаются из объекта $request
-  // getQueryParams() — извлекает все параметры
-  // getQueryParam($name, $defaultValue) — извлекает значение конкретного параметра,
-  // вторым параметром принимает значение по умолчанию
-//  $page = $request->getQueryParam('page', 1); 
-//  $per = $request->getQueryParam('per', 10);
-  // Тут обработка
-//  return $response;
-//});
-
-$app->post('/companies', function ($request, $response) {
-    return $response->write('POST /companies');
-});
-
-//$app->post('/users', function ($request, $response) {
-  // Устанавливаем статус ответа (запрашиваемый ресурс был временно перемещён в новое местоположение)
-//  return $response->withStatus(302);
-//});
 
 $app->run();
