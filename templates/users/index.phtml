@@ -24,16 +24,24 @@
 <?= htmlspecialchars($post['name']) ?>
 <table>
     <?php foreach ($users as $user) : ?>
-        <tr>
-            <td>
-                <?= htmlspecialchars($user['id']) ?>
-            </td>
-            <td>
-                <a href="/users/<?= $user['id'] ?>/edit"><?= htmlspecialchars($user['nickname']) ?></a>
-            </td>
-            <td>
-                <?= htmlspecialchars($user['email']) ?></a>
-            </td>
-        </tr>
+        <?php if ($user) : ?>
+            <tr>
+                <td>
+                    <?= htmlspecialchars($user['id']) ?>
+                </td>
+                <td>
+                    <a href="/users/<?= $user['id'] ?>/edit"><?= htmlspecialchars($user['nickname']) ?></a>
+                </td>
+                <td>
+                    <?= htmlspecialchars($user['email']) ?></a>
+                </td>
+                <td>
+                    <form action="/users/<?= $user['id'] ?>" method="post">
+                        <input type="hidden" name="_METHOD" value="DELETE">
+                        <input type="submit" value="Delete">
+                    </form>
+                </td>
+            </tr>
+        <?php endif; ?>
     <?php endforeach ?>
 </table>

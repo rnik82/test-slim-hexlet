@@ -36,6 +36,9 @@ $router = $app->getRouteCollector()->getRouteParser();
 // Благодаря пакету slim/http этот же код можно записать короче
 // return $response->write('Welcome to Slim!');
 
+$app->get('/', function ($request, $response) {
+  return $this->get('renderer')->render($response, 'index.phtml');
+});
 
 // Обработчик для страницы с формой, которую заполняет пользователь.
 // Эта форма отправляет POST-запрос на адрес /users, указанный в атрибуте action
@@ -55,7 +58,7 @@ $app->post('/users', function ($request, $response) use ($router) {
     // С помощью $request->getParsedBodyParam мы получаем данные из формы (то что вводит пользователь, шаблон new.phtml)
     $user = $request->getParsedBodyParam('user'); // асс массив, типа ["nickname" => "Igor","email" => "Igor@mail.ru"]
     //dd($user);
-    $validator = new App\Validator();
+    $validator = new SlimHexlet\Validator();
     // Проверяем корректность данных
     $errors = $validator->validate($user);
     if (count($errors) === 0) {
@@ -195,7 +198,7 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
     // то что вводит пользователь (шаблон new.phtml)
     $userData = $request->getParsedBodyParam('user');
 
-    $validator = new App\Validator();
+    $validator = new SlimHexlet\Validator();
     $errors = $validator->validate($userData);
 
     if (count($errors) === 0) {
@@ -222,6 +225,20 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
 
     return $this->get('renderer')
               ->render($response->withStatus(422), 'users/edit.phtml', $params);
+});
+
+$app->delete('/users/{id}', function ($request, $response, array $args) use ($router) {
+  $id = $args['id'];
+  //$repo->destroy($id);
+  $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+  $users = json_decode($data, true); // преобразуем в асс массив
+  $users[$id] = null; // удаляем пользователя - перезаписываем значение на null
+  // Получаем JSON-представление данных (users) в виде строки
+  $usersJson = json_encode($users);
+  // Записываем новые данные в файл (JSON-представление)
+  file_put_contents('data.txt', $usersJson . "\n");
+  $this->get('flash')->addMessage('success', 'User has been removed');
+  return $response->withRedirect($router->urlFor('users.index'));
 });
 
 
