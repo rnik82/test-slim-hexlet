@@ -64,29 +64,23 @@ $app->post('/users', function ($request, $response) use ($router) {
     if (count($errors) === 0) {
       // Если данные корректны, то сохраняем, добавляем флеш и выполняем редирект
 
-      // Получаем JSON-представление данных (user) в виде строки
-      //$userJson = json_encode($user); // {"nickname":"Igor","email":"igor@mail.ru"}
-      // Читаем данные из файла data.txt в корне проекта
-      $data = file_get_contents('data.txt'); // просто строка
-      //print_r($data);
-      // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
-      $users = json_decode($data, true) ?? []; // асс массив
-      //print_r($users);
+      // Данные о всех юзерах, вытаскиваем из куки
+      $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
+      //dd($users); // изначально - [], после добавления нового польз - [1 => ["id" => "1", "nickname" => "One", "email" => "o@ya.ru"]]
       $id = count($users) + 1;
       $user['id'] = $id;
       $users[$id] = $user;
       // Получаем JSON-представление данных (users) в виде строки
-      $usersJson = json_encode($users);
-      // Записываем данные о user в файл (JSON-представление)
-      file_put_contents('data.txt', $usersJson . "\n"); //  . "\n", FILE_APPEND
+      $encodedUsers = json_encode($users);
 
       // Добавление флеш-сообщения. Оно станет доступным на следующий HTTP-запрос.
       // 'success' — тип флеш-сообщения. Используется при выводе для форматирования.
       // Например, можно ввести тип success и отражать его зеленым цветом
       $this->get('flash')->addMessage('success', 'User was added successfully');
 
-      // После добавления данных в файл происходит редирект на адрес /users
-      return $response->withRedirect($router->urlFor('users.index'), 302);
+      // Установка обновленного списка users в куку, после чего происходит редирект на адрес /users
+      return $response->withHeader('Set-Cookie', "users={$encodedUsers};Path=/")
+      ->withRedirect($router->urlFor('users.index'), 302);
     }
     $params = [
         'user' => $user,
@@ -107,12 +101,16 @@ $app->get('/users', function ($request, $response) {
   $nickname = $request->getQueryParam('nickname');
 
   // Читаем данные из файла data.txt в корне проекта
-  $data = file_get_contents('data.txt');
-  
+  //$data = file_get_contents('data.txt');
   // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоциативный массив (так как true)
-  $usersAssArr = json_decode($data, true, 3);
-  // получаем массив значений (каждое значение примерно таеон ["nickname" => "Igor","email" => "Igor@mail.ru"])
-  $users = array_values($usersAssArr);
+  // $usersAssArr = json_decode($data, true, 3);
+
+  // Данные о всех юзерах, вытаскиваем из куки
+  $data = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
+  // dd($data);
+  // получаем массив значений (каждое значение примерно такое ["nickname" => "Igor","email" => "Igor@mail.ru"])
+  $users = array_values($data);
+  
   // фильтруем наш массив для вывода результатов поиска
   $filteredUsers = array_filter($users, fn($user) => str_contains($user['nickname'], $nickname));
 
@@ -125,34 +123,18 @@ $app->get('/users', function ($request, $response) {
   return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 })->setName('users.index');
 
-// $users = ['mike', 'mishel', 'adel', 'keks', 'kamila'];
-// // Обработчик с добавленной формой поиска для массива users (see template in templates/users/index.phtml)
-// $app->get('/users', function ($request, $response) use ($users) {
-
-//   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
-//   $name = $request->getQueryParam('name');
-
-//   // фильтруем наш массив для вывода результатов поиска
-//   $filteredNames = array_filter($users, fn($user) => str_contains($user, $name));
-
-//   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
-//   // ассоциативного массива. Передается третьим параметром в метод render
-//   $params = ['users' => $filteredNames, 'name' => $name];
-
-//   // $this в Slim это контейнер зависимостей.
-//   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
-//   return $this->get('renderer')->render($response, 'users/index.phtml', $params);
-// });
-
-
 // Обработчик с шаблонизатором (see template in templates/users/show.phtml)
 $app->get('/users/{id}', function ($request, $response, $args) {
   // Получаем искомый id
   $id = $args['id'];
+
   // Читаем данные из файла data.txt
-  $data = file_get_contents('data.txt'); // просто JSON в виде строки
+  // $data = file_get_contents('data.txt'); // просто JSON в виде строки
   // Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
-  $users = json_decode($data, true); // асс массив всех users
+  // $users = json_decode($data, true); // асс массив всех users
+
+  // Данные о всех юзерах, вытаскиваем из куки
+  $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
   // Находим нужного user по id
   $user = $users[$id] ?? null;
   // Если не нашелся, то реализуем код ошибки 404
@@ -173,13 +155,13 @@ $app->get('/users/{id}', function ($request, $response, $args) {
 $app->get('/users/{id}/edit', function ($request, $response, array $args) {
     //$post = $repo->find($args['id']); // не используем репозиторий (БД), вместо этого используем файл
     $id = $args['id'];
-    //dd($id);
-    $data = file_get_contents('data.txt'); // читаем файл (просто строка)
-    //dd($data);
-    $users = json_decode($data, true); // преобразуем в асс массив
-    //dd(gettype($users));
+
+    // $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+    // $users = json_decode($data, true); // преобразуем в асс массив
+
+    // Данные о всех юзерах, вытаскиваем из куки
+    $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
     $user = $users[$id];
-    //dd($user);
 
     $params = [
         'user' => $user,
@@ -191,8 +173,12 @@ $app->get('/users/{id}/edit', function ($request, $response, array $args) {
 
 $app->patch('/users/{id}', function ($request, $response, array $args) use ($router) {
     $id = $args['id'];
-    $data = file_get_contents('data.txt'); // читаем файл (просто строка)
-    $users = json_decode($data, true); // преобразуем в асс массив
+
+    // $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+    // $users = json_decode($data, true); // преобразуем в асс массив
+
+    // Данные о всех юзерах, вытаскиваем из куки
+    $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
     $user = $users[$id];
     // С помощью $request->getParsedBodyParam мы получаем данные из формы,
     // то что вводит пользователь (шаблон new.phtml)
@@ -204,17 +190,20 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
     if (count($errors) === 0) {
         $user['nickname'] = $userData['nickname'];
         $user['email'] = $userData['email'];
-        //dd($userData['name']);
         //$repo->save($post); // не используем репозиторий (БД), вместо этого используем файл
 
         // Обновляем юзера в списке
         $users[$id] = $user;
         // Получаем JSON-представление данных (users) в виде строки
-        $usersJson = json_encode($users);
+        $encodedUsers = json_encode($users);
+
         // Записываем данные о user в файл (JSON-представление)
-        file_put_contents('data.txt', $usersJson . "\n");
+        // file_put_contents('data.txt', $encodedUsers . "\n");
+
         $this->get('flash')->addMessage('success', 'User has been updated');
-        return $response->withRedirect($router->urlFor('users.index'));
+        // Установка обновленного списка users в куку, после чего происходит редирект на адрес /users
+        return $response->withHeader('Set-Cookie', "users={$encodedUsers};Path=/")
+        ->withRedirect($router->urlFor('users.index'), 302); // 302 нужно?
     }
 
     $params = [
@@ -230,16 +219,44 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
 $app->delete('/users/{id}', function ($request, $response, array $args) use ($router) {
   $id = $args['id'];
   //$repo->destroy($id);
-  $data = file_get_contents('data.txt'); // читаем файл (просто строка)
-  $users = json_decode($data, true); // преобразуем в асс массив
+  // $data = file_get_contents('data.txt'); // читаем файл (просто строка)
+  // $users = json_decode($data, true); // преобразуем в асс массив
+
+  // Данные о всех юзерах, вытаскиваем из куки
+  $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
+
   $users[$id] = null; // удаляем пользователя - перезаписываем значение на null
   // Получаем JSON-представление данных (users) в виде строки
-  $usersJson = json_encode($users);
+  $encodedUsers = json_encode($users);
+
   // Записываем новые данные в файл (JSON-представление)
-  file_put_contents('data.txt', $usersJson . "\n");
+  //file_put_contents('data.txt', $encodedUsers . "\n");
+
   $this->get('flash')->addMessage('success', 'User has been removed');
-  return $response->withRedirect($router->urlFor('users.index'));
+  return $response->withHeader('Set-Cookie', "users={$encodedUsers};Path=/")
+        ->withRedirect($router->urlFor('users.index'), 302); // 302 нужно?
 });
 
 
 $app->run();
+
+
+// Получаем JSON-представление данных (users) в виде строки
+// $usersJson = json_encode($users);
+
+
+// Читаем данные из файла data.txt в корне проекта
+// $data = file_get_contents('data.txt'); // просто строка
+
+// Берем JSON строку и преобразовываем её в PHP-значение, в данном случае в ассоц массив (так как true)
+// $users = json_decode($data, true) ?? []; // асс массив
+
+// $id = count($users) + 1;
+// $user['id'] = $id;
+// $users[$id] = $user;
+
+// Получаем JSON-представление данных (users) в виде строки
+// $usersJson = json_encode($users);
+
+// Записываем данные о user в файл (JSON-представление)
+// file_put_contents('data.txt', $usersJson . "\n");
