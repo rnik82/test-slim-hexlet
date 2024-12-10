@@ -21,7 +21,7 @@
   <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?>" />
   <input type="submit" value="Search" />
 </form>
-<?= htmlspecialchars($post['name']) ?>
+
 <table>
     <?php foreach ($users as $user) : ?>
         <?php if ($user) : ?>
@@ -45,3 +45,5 @@
         <?php endif; ?>
     <?php endforeach ?>
 </table>
+
+<a href="/">Выйти</a>

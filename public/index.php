@@ -36,17 +36,58 @@ $router = $app->getRouteCollector()->getRouteParser();
 // Благодаря пакету slim/http этот же код можно записать короче
 // return $response->write('Welcome to Slim!');
 
-$app->get('/', function ($request, $response) {
-  return $this->get('renderer')->render($response, 'index.phtml');
-});
+$app->get('/', function ($request, $response) use ($router) {
+  $flash = $this->get('flash')->getMessages();
+  if (isset($_SESSION['user'])) {
+      $params = [
+          'user' => $_SESSION['user'] ?? null,
+          'url' => $router->urlFor('session.destroy'),
+          'flash' => $flash,
+      ];
+  } else {
+      $params = [
+          'user' => $_SESSION['user'] ?? null,
+          'url' => $router->urlFor('session.create'),
+          'flash' => $flash,
+      ];
+  }
+  return $this->get('renderer')->render($response, 'users/login.phtml', $params);
+})->setName('/');
+
+$app->post('/session', function ($request, $response) use ($router) {
+  $user = $request->getParsedBodyParam('user');
+  $email = $user['email'];
+  $users = json_decode($request->getCookieParam('users', json_encode([])), true); // user?
+  $filteredUsers = array_filter($users, fn($item) => $item['email'] === $email);
+  if (!empty($filteredUsers)) {
+      $name = $user['name'];
+      $this->get('flash')->addMessage('success', "You have successfully logged in as {$name}");
+      $_SESSION['user'] = $user['name'];
+      $url = $router->urlFor('users.index');
+      return $response->withRedirect($url, 302);
+  }
+  $url = $router->urlFor('/');
+  $this->get('flash')->addMessage('error', 'Wrong email');
+  return $response->withRedirect($url, 302);
+})->setName('session.create');
+
+$app->delete('/session', function ($request, $response) use ($router) {
+  $_SESSION = [];
+  session_destroy();
+  $route = $router->urlFor('/');
+  return $response->withRedirect($route);
+})->setName('session.destroy');
 
 // Обработчик для страницы с формой, которую заполняет пользователь.
 // Эта форма отправляет POST-запрос на адрес /users, указанный в атрибуте action
 $app->get('/users/new', function ($request, $response) {
+    // params - массив параметров для передачи в шаблон
     $params = [
         'user' => [],
         'errors' => []
     ];
+    // $this->get('renderer') обращается к контейнеру зависимостей Slim
+    // для получения объекта, отвечающего за рендеринг шаблонов ($this в Slim это контейнер зависимостей)
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
 })->setName('users.create');
 
@@ -202,6 +243,8 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
 
         $this->get('flash')->addMessage('success', 'User has been updated');
         // Установка обновленного списка users в куку, после чего происходит редирект на адрес /users
+        // Нужно принудительно указать Path=/. Если его не указывать, то куки устанавливается с адресом 
+        // с которого происходила отправка данных.
         return $response->withHeader('Set-Cookie', "users={$encodedUsers};Path=/")
         ->withRedirect($router->urlFor('users.index'), 302); // 302 нужно?
     }
