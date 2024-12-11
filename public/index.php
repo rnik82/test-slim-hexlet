@@ -58,7 +58,7 @@ $app->post('/session', function ($request, $response) use ($router) {
   $user = $request->getParsedBodyParam('user');
   $email = $user['email'];
   $users = json_decode($request->getCookieParam('users', json_encode([])), true);
-  $filteredUsers = array_filter($users, fn($item) => $item['email'] === $email);
+  $filteredUsers = array_filter($users, fn($item) => !is_null($item) && $item['email'] === $email);
   if (!empty($filteredUsers)) {
       $name = $user['name'];
       $this->get('flash')->addMessage('success', "You have successfully logged in as {$name}");
