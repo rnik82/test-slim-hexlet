@@ -18,7 +18,7 @@
 
 <!-- Шаблон для обработчика get /users, который отображает пользователей и почту -->
 <form action="/users" method="get">
-  <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?>" />
+  <input type="search" name="nickname" value="<?= htmlspecialchars($nickname) ?? '' ?>" />
   <input type="submit" value="Search" />
 </form>
 
@@ -30,10 +30,10 @@
                     <?= htmlspecialchars($user['id']) ?>
                 </td>
                 <td>
-                    <a href="/users/<?= $user['id'] ?>/edit"><?= htmlspecialchars($user['nickname']) ?></a>
+                    <a href="/users/<?= $user['id'] ?>/edit"><?= htmlspecialchars($user['nickname']) ?? '' ?></a>
                 </td>
                 <td>
-                    <?= htmlspecialchars($user['email']) ?></a>
+                    <?= htmlspecialchars($user['email']) ?? '' ?></a>
                 </td>
                 <td>
                     <form action="/users/<?= $user['id'] ?>" method="post">
