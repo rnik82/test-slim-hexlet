@@ -56,7 +56,7 @@ $app->get('/', function ($request, $response) use ($router) {
 
 $app->post('/session', function ($request, $response) use ($router) {
   $user = $request->getParsedBodyParam('user');
-  $email = $user['email'];
+  $email = $user['email'] ?? '';
   $users = json_decode($request->getCookieParam('users', json_encode([])), true); // user?
   $filteredUsers = array_filter($users, fn($item) => $item['email'] === $email);
   if (!empty($filteredUsers)) {
