@@ -154,7 +154,7 @@ $app->get('/users', function ($request, $response) {
   
   $nickname = $user['nickname'] ?? '';
   // фильтруем наш массив для вывода результатов поиска
-  $filteredUsers = array_filter($users, fn($user) => str_contains($user['nickname'], $substr));
+  $filteredUsers = array_filter($users, fn($user) => str_contains($nickname, $substr));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
