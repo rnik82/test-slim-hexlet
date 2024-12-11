@@ -153,7 +153,7 @@ $app->get('/users', function ($request, $response) {
   $users = array_values($data);
   
   // фильтруем наш массив для вывода результатов поиска
-  $filteredUsers = array_filter($users, fn($user) => count($user) > 0 && str_contains($user['nickname'], $substr));
+  $filteredUsers = array_filter($users, fn($user) => !is_null($user) && str_contains($user['nickname'], $substr));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
@@ -268,7 +268,7 @@ $app->delete('/users/{id}', function ($request, $response, array $args) use ($ro
   // Данные о всех юзерах, вытаскиваем из куки
   $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
 
-  $users[$id] = []; // удаляем пользователя - перезаписываем значение на null
+  $users[$id] = null; // удаляем пользователя - перезаписываем значение на null
   // Получаем JSON-представление данных (users) в виде строки
   $encodedUsers = json_encode($users);
 
