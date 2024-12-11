@@ -139,7 +139,7 @@ $app->get('/users', function ($request, $response) {
   // Извлечение flash-сообщений, установленных на предыдущем запросе
   $messages = $this->get('flash')->getMessages();
   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
-  $nickname = $request->getQueryParam('nickname') ?? '';
+  $substr = $request->getQueryParam('nickname') ?? '';
 
   // Читаем данные из файла data.txt в корне проекта
   //$data = file_get_contents('data.txt');
@@ -152,8 +152,9 @@ $app->get('/users', function ($request, $response) {
   // получаем массив значений (каждое значение примерно такое ["nickname" => "Igor","email" => "Igor@mail.ru"])
   $users = array_values($data);
   
+  $nickname = $user['nickname'] ?? '';
   // фильтруем наш массив для вывода результатов поиска
-  $filteredUsers = array_filter($users, fn($user) => str_contains($user['nickname'], $nickname));
+  $filteredUsers = array_filter($users, fn($user) => str_contains($user['nickname'], $substr));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
