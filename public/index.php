@@ -139,7 +139,7 @@ $app->get('/users', function ($request, $response) {
   // Извлечение flash-сообщений, установленных на предыдущем запросе
   $messages = $this->get('flash')->getMessages();
   // таким способом извлекаем данные формы на сервере внутри фреймворка Slim
-  $nickname = $request->getQueryParam('nickname');
+  $nickname = $request->getQueryParam('nickname') ?? '';
 
   // Читаем данные из файла data.txt в корне проекта
   //$data = file_get_contents('data.txt');
