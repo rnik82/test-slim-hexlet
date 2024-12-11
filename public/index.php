@@ -58,7 +58,7 @@ $app->post('/session', function ($request, $response) use ($router) {
   $user = $request->getParsedBodyParam('user');
   $email = $user['email'];
   $users = json_decode($request->getCookieParam('users', json_encode([])), true);
-  $filteredUsers = array_filter($users, fn($item = []) => $item['email'] === $email);
+  $filteredUsers = array_filter($users, fn($item) => $item['email'] === $email);
   if (!empty($filteredUsers)) {
       $name = $user['name'];
       $this->get('flash')->addMessage('success', "You have successfully logged in as {$name}");
@@ -152,9 +152,8 @@ $app->get('/users', function ($request, $response) {
   // получаем массив значений (каждое значение примерно такое ["nickname" => "Igor","email" => "Igor@mail.ru"])
   $users = array_values($data);
   
-  $nickname = $user['nickname'] ?? '';
   // фильтруем наш массив для вывода результатов поиска
-  $filteredUsers = array_filter($users, fn($user) => str_contains($nickname, $substr));
+  $filteredUsers = array_filter($users, fn($user) => $user !== [] && str_contains($user['nickname'], $substr));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
@@ -269,7 +268,7 @@ $app->delete('/users/{id}', function ($request, $response, array $args) use ($ro
   // Данные о всех юзерах, вытаскиваем из куки
   $users = json_decode($request->getCookieParam('users', json_encode([])), true); // получаем асс массив
 
-  $users[$id] = null; // удаляем пользователя - перезаписываем значение на null
+  $users[$id] = []; // удаляем пользователя - перезаписываем значение на null
   // Получаем JSON-представление данных (users) в виде строки
   $encodedUsers = json_encode($users);
 
