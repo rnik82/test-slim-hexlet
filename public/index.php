@@ -153,11 +153,11 @@ $app->get('/users', function ($request, $response) {
   $users = array_values($data);
   
   // фильтруем наш массив для вывода результатов поиска
-  $filteredUsers = array_filter($users, fn($user) => $user !== [] && str_contains($user['nickname'], $substr));
+  $filteredUsers = array_filter($users, fn($user) => count($user) > 0 && str_contains($user['nickname'], $substr));
 
   // Данные из обработчика нужно сохранить и затем передать в шаблон в виде
   // ассоциативного массива. Передается третьим параметром в метод render
-  $params = ['users' => $filteredUsers, 'nickname' => $nickname, 'flash' => $messages];
+  $params = ['users' => $filteredUsers, 'nickname' => $substr, 'flash' => $messages];
 
   // $this в Slim это контейнер зависимостей.
   // Метод render() выполняет рендеринг указанного шаблона и добавляет результат в ответ
